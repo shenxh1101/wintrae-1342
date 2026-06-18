@@ -1,4 +1,7 @@
 import type { Plant, Photo } from '@/types/plant';
+import dayjs from 'dayjs';
+
+const today = dayjs();
 
 export const mockPlants: Plant[] = [
   {
@@ -16,6 +19,13 @@ export const mockPlants: Plant[] = [
       rotate: 7,
       clean: 14
     },
+    lastCompletedDates: {
+      water: today.subtract(2, 'day').format('YYYY-MM-DD'),
+      fertilize: today.subtract(10, 'day').format('YYYY-MM-DD'),
+      rotate: today.subtract(5, 'day').format('YYYY-MM-DD'),
+      clean: today.subtract(12, 'day').format('YYYY-MM-DD')
+    },
+    deferredTasks: {},
     createdAt: '2025-03-15T10:00:00Z',
     notes: '喜欢湿润环境，避免阳光直射'
   },
@@ -33,6 +43,13 @@ export const mockPlants: Plant[] = [
       prune: 60,
       rotate: 14,
       clean: 30
+    },
+    lastCompletedDates: {
+      water: today.subtract(11, 'day').format('YYYY-MM-DD'),
+      rotate: today.subtract(14, 'day').format('YYYY-MM-DD')
+    },
+    deferredTasks: {
+      water: 1
     },
     createdAt: '2025-04-20T14:30:00Z',
     notes: '耐旱，浇水要见干见湿'
@@ -52,6 +69,14 @@ export const mockPlants: Plant[] = [
       rotate: 10,
       clean: 7
     },
+    lastCompletedDates: {
+      water: today.subtract(6, 'day').format('YYYY-MM-DD'),
+      fertilize: today.subtract(15, 'day').format('YYYY-MM-DD'),
+      prune: today.subtract(40, 'day').format('YYYY-MM-DD'),
+      rotate: today.subtract(12, 'day').format('YYYY-MM-DD'),
+      clean: today.subtract(8, 'day').format('YYYY-MM-DD')
+    },
+    deferredTasks: {},
     createdAt: '2025-02-10T09:00:00Z',
     notes: '叶片大，需要定期擦拭除尘'
   },
@@ -70,6 +95,10 @@ export const mockPlants: Plant[] = [
       rotate: 30,
       clean: 60
     },
+    lastCompletedDates: {
+      water: today.subtract(18, 'day').format('YYYY-MM-DD')
+    },
+    deferredTasks: {},
     createdAt: '2025-05-01T11:00:00Z',
     notes: '非常耐旱，少浇水'
   },
@@ -88,6 +117,11 @@ export const mockPlants: Plant[] = [
       rotate: 21,
       clean: 30
     },
+    lastCompletedDates: {
+      water: today.subtract(13, 'day').format('YYYY-MM-DD'),
+      fertilize: today.subtract(25, 'day').format('YYYY-MM-DD')
+    },
+    deferredTasks: {},
     createdAt: '2025-01-20T16:00:00Z',
     notes: '夜间释放氧气，适合卧室'
   },
@@ -106,6 +140,11 @@ export const mockPlants: Plant[] = [
       rotate: 14,
       clean: 14
     },
+    lastCompletedDates: {
+      water: today.subtract(3, 'day').format('YYYY-MM-DD'),
+      rotate: today.subtract(15, 'day').format('YYYY-MM-DD')
+    },
+    deferredTasks: {},
     createdAt: '2024-12-15T10:00:00Z',
     notes: '忌积水，盆土干透再浇'
   }

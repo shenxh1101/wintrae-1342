@@ -55,18 +55,46 @@
 
 .addBtn {
   @include button-reset;
+  flex: 1;
   background: $color-primary-gradient;
   color: $color-text-white;
   height: $button-height-md;
   padding: 0 $spacing-lg;
   border-radius: $radius-button;
   font-size: $font-size-md;
-  margin-bottom: $spacing-lg;
-  
+
   &:active {
     opacity: 0.9;
     transform: scale(0.98);
   }
+}
+
+.actionBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+
+.compareBtn {
+  @include button-reset;
+  flex: 1;
+  background-color: $color-bg-card;
+  color: $color-primary;
+  height: $button-height-md;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  border: 2rpx solid $color-primary;
+  box-shadow: $shadow-card;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.compareBtnDisabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .timeline {

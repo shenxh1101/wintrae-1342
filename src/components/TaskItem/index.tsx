@@ -8,11 +8,13 @@ import styles from './index.module.scss';
 
 interface TaskItemProps {
   task: Task;
-  onComplete: (taskId: string) => void;
-  onDefer: (taskId: string, days?: number) => void;
+  onComplete?: () => void;
+  onDefer?: (days?: number) => void;
+  isHistory?: boolean;
+  completedDate?: string;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, onDefer }) => {
+const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, onDefer, isHistory = false, completedDate }) => {
   const taskType = taskTypeList.find(t => t.key === task.type);
   const icon = taskType?.icon || '📋';
   const name = taskType?.name || '任务';
@@ -25,7 +27,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, onDefer }) => {
   let statusClass = styles.statusTomorrow;
   let statusText = `${diff} 天后`;
 
-  if (task.completed) {
+  if (task.completed || isHistory) {
     statusClass = styles.statusCompleted;
     statusText = '已完成';
   } else if (diff < 0) {
@@ -39,35 +41,37 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, onDefer }) => {
     statusText = '明日待办';
   }
 
-  const handleComplete = () => {
-    onComplete(task.id);
-  };
-
-  const handleDefer = () => {
-    onDefer(task.id, 1);
-  };
+  const displayCompletedDate = completedDate || task.completedDate;
 
   return (
-    <View className={classnames(styles.card, task.completed && styles.completed)}>
+    <View className={classnames(styles.card, (task.completed || isHistory) && styles.completed)}>
       <View className={styles.header}>
         <View className={styles.icon} style={{ backgroundColor: `${color}15` }}>
           <Text>{icon}</Text>
         </View>
         <View className={styles.content}>
           <Text className={styles.title}>{name} - {task.plantName}</Text>
-          <Text className={styles.subtitle}>计划日期：{task.scheduledDate}</Text>
+          <Text className={styles.subtitle}>
+            {isHistory || task.completed
+              ? `原定：${task.scheduledDate}`
+              : `计划日期：${task.scheduledDate}`
+            }
+            {task.deferredCount > 0 && (
+              <Text className={styles.deferredTag}> 已延期{task.deferredCount}次</Text>
+            )}
+          </Text>
         </View>
         <Text className={classnames(styles.status, statusClass)}>{statusText}</Text>
       </View>
       <View className={styles.body}>
-        {task.completed ? (
-          <Text className={styles.completedText}>✅ 已完成于 {task.completedDate}</Text>
+        {task.completed || isHistory ? (
+          <Text className={styles.completedText}>✅ 已完成于 {displayCompletedDate}</Text>
         ) : (
           <>
-            <Button className={styles.checkBtn} onClick={handleComplete}>
+            <Button className={styles.checkBtn} onClick={onComplete}>
               完成打卡
             </Button>
-            <Button className={styles.deferBtn} onClick={handleDefer}>
+            <Button className={styles.deferBtn} onClick={() => onDefer?.(1)}>
               延期1天
             </Button>
           </>

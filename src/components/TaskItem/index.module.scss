@@ -45,6 +45,11 @@
   @include text-ellipsis;
 }
 
+.deferredTag {
+  color: $color-warning;
+  font-size: $font-size-xs;
+}
+
 .status {
   font-size: $font-size-xs;
   padding: 4rpx 12rpx;

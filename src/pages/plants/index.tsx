@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Button, ScrollView } from '@tarojs/components';
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
 import { usePlantStore } from '@/store/usePlantStore';
@@ -6,29 +6,26 @@ import PlantCard from '@/components/PlantCard';
 import styles from './index.module.scss';
 
 const PlantsPage: React.FC = () => {
-  const { plants, tasks, refreshTasks } = usePlantStore();
-  
-  const [pendingTasks, setPendingTasks] = useState(0);
+  const { plants, getTasks, initStore } = usePlantStore();
 
-  useEffect(() => {
-    refreshTasks();
-  }, []);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useDidShow(() => {
-    refreshTasks();
+    initStore();
+    setRefreshKey(k => k + 1);
   });
 
   usePullDownRefresh(() => {
-    refreshTasks();
+    setRefreshKey(k => k + 1);
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 500);
   });
 
-  useEffect(() => {
-    const pending = tasks.filter(t => !t.completed).length;
-    setPendingTasks(pending);
-  }, [tasks]);
+  const pendingTasks = useMemo(() => {
+    return getTasks().length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plants, refreshKey]);
 
   const handleAddPlant = () => {
     Taro.navigateTo({
@@ -40,7 +37,7 @@ const PlantsPage: React.FC = () => {
     <ScrollView className={styles.page} scrollY>
       <View className={styles.header}>
         <Text className={styles.title}>🌿 我的花园</Text>
-        <Text className={styles.title}>用心呵护每一株植物</Text>
+        <Text className={styles.subtitle}>用心呵护每一株植物</Text>
       </View>
 
       <View className={styles.stats}>

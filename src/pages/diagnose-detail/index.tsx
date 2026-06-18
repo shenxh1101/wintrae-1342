@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
-import { useRouter } from '@tarojs/taro';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, Textarea, Button } from '@tarojs/components';
+import Taro, { useRouter } from '@tarojs/taro';
+import dayjs from 'dayjs';
 import { symptoms } from '@/data/mockDiagnose';
 import { usePlantStore } from '@/store/usePlantStore';
 import styles from './index.module.scss';
@@ -9,8 +10,12 @@ const DiagnoseDetailPage: React.FC = () => {
   const router = useRouter();
   const symptomId = router.params.id;
   const plantId = router.params.plantId;
-  
-  const { plants } = usePlantStore();
+  const initialRecorded = router.params.recorded === 'true';
+
+  const { plants, addDiagnosticRecord } = usePlantStore();
+
+  const [notes, setNotes] = useState('');
+  const [recorded, setRecorded] = useState(initialRecorded);
 
   const symptom = useMemo(() => {
     return symptoms.find(s => s.id === symptomId);
@@ -20,6 +25,35 @@ const DiagnoseDetailPage: React.FC = () => {
     if (!plantId) return null;
     return plants.find(p => p.id === plantId);
   }, [plants, plantId]);
+
+  const handleSaveRecord = () => {
+    if (!plantId || !symptomId) {
+      Taro.showToast({
+        title: '请先选择植物',
+        icon: 'none'
+      });
+      return;
+    }
+
+    addDiagnosticRecord({
+      plantId,
+      symptomId,
+      date: dayjs().format('YYYY-MM-DD'),
+      notes: notes.trim() || undefined
+    });
+
+    setRecorded(true);
+    Taro.showToast({
+      title: '记录已保存',
+      icon: 'success'
+    });
+  };
+
+  const handleViewHistory = () => {
+    Taro.switchTab({
+      url: '/pages/diagnose/index'
+    });
+  };
 
   if (!symptom) {
     return (
@@ -42,6 +76,23 @@ const DiagnoseDetailPage: React.FC = () => {
           <View className={styles.selectedPlant}>
             <Text className={styles.selectedPlantText}>
               正在诊断：{selectedPlant.name}
+            </Text>
+          </View>
+        )}
+        {recorded && (
+          <View style={{
+            marginTop: '16rpx',
+            padding: '8rpx 16rpx',
+            backgroundColor: 'rgba(45, 184, 77, 0.15)',
+            borderRadius: '100rpx',
+            alignSelf: 'flex-start'
+          }}>
+            <Text style={{
+              color: '#2DB84D',
+              fontSize: '24rpx',
+              fontWeight: '500'
+            }}>
+              ✅ 已记录诊断
             </Text>
           </View>
         )}
@@ -71,6 +122,32 @@ const DiagnoseDetailPage: React.FC = () => {
           ))}
         </View>
       </View>
+
+      {plantId && (
+        <View className={styles.section}>
+          <Text className={styles.sectionTitle}>📝 记录备注</Text>
+          <Textarea
+            className={styles.notesInput}
+            placeholder="记录观察到的情况、已采取的措施、后续计划等..."
+            placeholderClass={styles.notesPlaceholder}
+            value={notes}
+            onInput={(e) => setNotes(e.detail.value)}
+            maxlength={500}
+            autoHeight
+          />
+          <View className={styles.notesActions}>
+            {!recorded ? (
+              <Button className={styles.saveRecordBtn} onClick={handleSaveRecord}>
+                💾 保存诊断记录
+              </Button>
+            ) : (
+              <Button className={styles.viewHistoryBtn} onClick={handleViewHistory}>
+                📋 查看全部历史记录
+              </Button>
+            )}
+          </View>
+        </View>
+      )}
 
       <View className={styles.tipCard}>
         <Text className={styles.tipTitle}>📝 预防建议</Text>

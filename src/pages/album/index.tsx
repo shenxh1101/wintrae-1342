@@ -8,15 +8,18 @@ import PhotoItem from '@/components/PhotoItem';
 import styles from './index.module.scss';
 
 const AlbumPage: React.FC = () => {
-  const { plants, photos, addPhoto, deletePhoto, getPhotosByPlant } = usePlantStore();
-  
+  const { plants, photos, addPhoto, deletePhoto, getPhotosByPlant, initStore } = usePlantStore();
+
   const [selectedPlantId, setSelectedPlantId] = useState<string>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useDidShow(() => {
-    // 刷新数据
+    initStore();
+    setRefreshKey(k => k + 1);
   });
 
   usePullDownRefresh(() => {
+    setRefreshKey(k => k + 1);
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 500);
@@ -28,7 +31,8 @@ const AlbumPage: React.FC = () => {
       filteredPhotos = getPhotosByPlant(selectedPlantId);
     }
     return filteredPhotos.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
-  }, [photos, selectedPlantId, getPhotosByPlant]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos, selectedPlantId, getPhotosByPlant, refreshKey]);
 
   const groupedPhotos = useMemo(() => {
     const groups: Record<string, typeof photos> = {};
@@ -41,6 +45,13 @@ const AlbumPage: React.FC = () => {
     });
     return groups;
   }, [displayPhotos]);
+
+  const canCompare = useMemo(() => {
+    if (selectedPlantId === 'all') {
+      return plants.some(p => getPhotosByPlant(p.id).length >= 2);
+    }
+    return getPhotosByPlant(selectedPlantId).length >= 2;
+  }, [selectedPlantId, plants, getPhotosByPlant]);
 
   const getPlantName = (plantId: string) => {
     const plant = plants.find(p => p.id === plantId);
@@ -63,7 +74,7 @@ const AlbumPage: React.FC = () => {
       success: (res) => {
         const tempFilePath = res.tempFilePaths[0];
         const plantId = selectedPlantId === 'all' ? plants[0].id : selectedPlantId;
-        
+
         Taro.showModal({
           title: '添加备注',
           editable: true,
@@ -76,6 +87,7 @@ const AlbumPage: React.FC = () => {
                 date: dayjs().format('YYYY-MM-DD'),
                 notes: modalRes.content || ''
               });
+              setRefreshKey(k => k + 1);
               Taro.showToast({
                 title: '照片已添加',
                 icon: 'success'
@@ -92,9 +104,24 @@ const AlbumPage: React.FC = () => {
 
   const handleDeletePhoto = (photoId: string) => {
     deletePhoto(photoId);
+    setRefreshKey(k => k + 1);
     Taro.showToast({
       title: '已删除',
       icon: 'success'
+    });
+  };
+
+  const handleCompare = () => {
+    if (!canCompare) {
+      Taro.showToast({
+        title: '需要至少2张照片才能对比',
+        icon: 'none'
+      });
+      return;
+    }
+    const plantParam = selectedPlantId !== 'all' ? `?plantId=${selectedPlantId}` : '';
+    Taro.navigateTo({
+      url: `/pages/photo-compare/index${plantParam}`
     });
   };
 
@@ -130,9 +157,17 @@ const AlbumPage: React.FC = () => {
         ))}
       </ScrollView>
 
-      <Button className={styles.addBtn} onClick={handleAddPhoto}>
-        + 记录成长
-      </Button>
+      <View className={styles.actionBar}>
+        <Button className={styles.addBtn} onClick={handleAddPhoto}>
+          + 记录成长
+        </Button>
+        <Button
+          className={classnames(styles.compareBtn, !canCompare && styles.compareBtnDisabled)}
+          onClick={handleCompare}
+        >
+          🔄 对比成长
+        </Button>
+      </View>
 
       {displayPhotos.length === 0 ? (
         <View className={styles.emptyState}>

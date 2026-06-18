@@ -9,16 +9,22 @@ import { symptoms } from '@/data/mockDiagnose';
 import type { Symptom } from '@/types/plant';
 import styles from './index.module.scss';
 
+type HistoryFilterType = 'all' | string;
+
 const DiagnosePage: React.FC = () => {
-  const { plants, diagnosticRecords, addDiagnosticRecord } = usePlantStore();
-  
+  const { plants, diagnosticRecords, addDiagnosticRecord, initStore } = usePlantStore();
+
   const [selectedPlantId, setSelectedPlantId] = useState<string>('');
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilterType>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useDidShow(() => {
-    // 刷新数据
+    initStore();
+    setRefreshKey(k => k + 1);
   });
 
   usePullDownRefresh(() => {
+    setRefreshKey(k => k + 1);
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 500);
@@ -28,20 +34,40 @@ const DiagnosePage: React.FC = () => {
     return plants.find(p => p.id === selectedPlantId);
   }, [plants, selectedPlantId]);
 
-  const recentRecords = useMemo(() => {
-    return [...diagnosticRecords]
+  const processedRecords = useMemo(() => {
+    let filtered = [...diagnosticRecords];
+    if (historyFilter !== 'all') {
+      filtered = filtered.filter(r => r.plantId === historyFilter);
+    }
+
+    return filtered
       .sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf())
-      .slice(0, 5)
       .map(record => {
         const plant = plants.find(p => p.id === record.plantId);
         const symptom = symptoms.find(s => s.id === record.symptomId);
         return {
           ...record,
           plantName: plant?.name || '未知植物',
-          symptomName: symptom?.name || '未知问题'
+          plantImage: plant?.image || '',
+          symptomName: symptom?.name || '未知问题',
+          symptomIcon: symptom?.icon || '❓',
+          symptomColor: symptom ? getSymptomColor(symptom.id) : '#86909C'
         };
       });
-  }, [diagnosticRecords, plants]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diagnosticRecords, plants, historyFilter, refreshKey]);
+
+  const recentRecords = processedRecords.slice(0, 5);
+
+  function getSymptomColor(symptomId: string): string {
+    const colorMap: Record<string, string> = {
+      'yellow-leaf': '#FAAD14',
+      'root-rot': '#722ED1',
+      'pest': '#F5222D',
+      'legginess': '#13C2C2'
+    };
+    return colorMap[symptomId] || '#86909C';
+  }
 
   const handlePlantSelect = (plantId: string) => {
     setSelectedPlantId(plantId === selectedPlantId ? '' : plantId);
@@ -54,6 +80,7 @@ const DiagnosePage: React.FC = () => {
         symptomId: symptom.id,
         date: dayjs().format('YYYY-MM-DD')
       });
+      setRefreshKey(k => k + 1);
       Taro.showToast({
         title: '已记录诊断',
         icon: 'success'
@@ -62,6 +89,12 @@ const DiagnosePage: React.FC = () => {
 
     Taro.navigateTo({
       url: `/pages/diagnose-detail/index?id=${symptom.id}&plantId=${selectedPlantId || ''}`
+    });
+  };
+
+  const handleRecordClick = (recordId: string) => {
+    Taro.navigateTo({
+      url: `/pages/diagnose-record/index?id=${recordId}`
     });
   };
 
@@ -121,20 +154,92 @@ const DiagnosePage: React.FC = () => {
         ))}
       </View>
 
-      {recentRecords.length > 0 && (
-        <View className={styles.recordSection}>
-          <Text className={styles.sectionTitle}>📋 最近诊断记录</Text>
-          {recentRecords.map(record => (
-            <View key={record.id} className={styles.recordCard}>
-              <View className={styles.recordInfo}>
-                <Text className={styles.recordPlant}>{record.plantName}</Text>
-                <Text className={styles.recordSymptom}>症状：{record.symptomName}</Text>
-                <Text className={styles.recordDate}>诊断时间：{record.date}</Text>
-              </View>
-            </View>
-          ))}
+      <View className={styles.historySection}>
+        <View className={styles.historyHeader}>
+          <Text className={styles.sectionTitle}>📋 诊断历史记录</Text>
+          <Text className={styles.historyCount}>共 {processedRecords.length} 条</Text>
         </View>
-      )}
+
+        {processedRecords.length > 0 && (
+          <ScrollView className={styles.historyFilterBar} scrollX>
+            <View
+              className={classnames(
+                styles.historyFilterItem,
+                historyFilter === 'all' && styles.historyFilterItemActive
+              )}
+              onClick={() => setHistoryFilter('all')}
+            >
+              全部 ({diagnosticRecords.length})
+            </View>
+            {plants.map(plant => {
+              const count = diagnosticRecords.filter(r => r.plantId === plant.id).length;
+              if (count === 0) return null;
+              return (
+                <View
+                  key={plant.id}
+                  className={classnames(
+                    styles.historyFilterItem,
+                    historyFilter === plant.id && styles.historyFilterItemActive
+                  )}
+                  onClick={() => setHistoryFilter(plant.id)}
+                >
+                  {plant.name} ({count})
+                </View>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {processedRecords.length === 0 ? (
+          <View className={styles.emptyHistory}>
+            <Text className={styles.emptyHistoryIcon}>📝</Text>
+            <Text className={styles.emptyHistoryText}>
+              {historyFilter === 'all'
+                ? '还没有诊断记录\n选择症状开始记录吧~'
+                : '该植物还没有诊断记录'
+              }
+            </Text>
+          </View>
+        ) : (
+          <View className={styles.historyList}>
+            {processedRecords.map(record => (
+              <View
+                key={record.id}
+                className={styles.historyCard}
+                onClick={() => handleRecordClick(record.id)}
+              >
+                <View className={styles.historyCardTop}>
+                  <Image
+                    className={styles.historyPlantImage}
+                    src={record.plantImage}
+                    mode="aspectFill"
+                  />
+                  <View className={styles.historyInfo}>
+                    <View className={styles.historyPlantRow}>
+                      <Text className={styles.historyPlantName}>{record.plantName}</Text>
+                      <View
+                        className={styles.historySymptomBadge}
+                        style={{
+                          backgroundColor: `${record.symptomColor}15`,
+                          color: record.symptomColor
+                        }}
+                      >
+                        <Text className={styles.historySymptomIcon}>{record.symptomIcon}</Text>
+                        <Text>{record.symptomName}</Text>
+                      </View>
+                    </View>
+                    <Text className={styles.historyDate}>📅 {record.date}</Text>
+                    {record.notes && (
+                      <Text className={styles.historyNotes}>💬 {record.notes}</Text>
+                    )}
+                  </View>
+                  <Text style={{ color: '#86909C', fontSize: '28rpx', flexShrink: 0 }}>→</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
 
       {plants.length === 0 && (
         <View className={styles.emptyState}>

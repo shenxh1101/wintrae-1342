@@ -1,0 +1,288 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $page-padding;
+  padding-bottom: calc(#{env(safe-area-inset-bottom)} + #{$spacing-lg});
+  min-height: 100vh;
+}
+
+.section {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.subTitle {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-md;
+  line-height: $line-height-loose;
+}
+
+.plantList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.plantItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  background-color: $color-bg-hover;
+
+  &.active {
+    background-color: $color-bg-tag;
+    border: 2rpx solid $color-primary;
+  }
+}
+
+.plantImage {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-sm;
+  background-color: $color-bg-card;
+  flex-shrink: 0;
+}
+
+.plantInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.plantName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.plantCount {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.photoSelector {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.photoSlot {
+  border: 2rpx dashed $color-primary;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  background-color: rgba($color-primary, 0.05);
+
+  &.filled {
+    border-style: solid;
+    background-color: $color-bg-card;
+  }
+}
+
+.photoSlotLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  font-weight: $font-weight-medium;
+}
+
+.photoList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-sm;
+}
+
+.photoItem {
+  aspect-ratio: 1;
+  border-radius: $radius-sm;
+  overflow: hidden;
+  position: relative;
+  background-color: $color-bg-hover;
+  cursor: pointer;
+
+  &.selected {
+    border: 4rpx solid $color-primary;
+    opacity: 0.8;
+  }
+
+  &.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+
+.photoImage {
+  width: 100%;
+  height: 100%;
+}
+
+.photoCheck {
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background-color: $color-primary;
+  color: $color-text-white;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photoDateBadge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4rpx 8rpx;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: $color-text-white;
+  font-size: 18rpx;
+}
+
+.compareSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.compareGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+}
+
+.compareCard {
+  background-color: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.compareImage {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: $radius-sm;
+  background-color: $color-bg-card;
+}
+
+.compareInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.compareDate {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.compareNotes {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: $line-height-base;
+}
+
+.vsDivider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 -$spacing-lg;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: $spacing-lg;
+    right: $spacing-lg;
+    height: 2rpx;
+    background-color: $color-divider;
+  }
+}
+
+.vsBadge {
+  position: relative;
+  z-index: 1;
+  padding: $spacing-xs $spacing-md;
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  border-radius: 100rpx;
+}
+
+.analysis {
+  background-color: rgba($color-primary, 0.1);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.analysisTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.analysisContent {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+}
+
+.resetBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background-color: $color-bg-hover;
+  color: $color-text-secondary;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  margin-top: $spacing-md;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.emptyState {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xl * 2;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 80rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  line-height: $line-height-loose;
+}

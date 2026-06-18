@@ -7,6 +7,8 @@ export interface Plant {
   purchaseDate: string;
   image: string;
   careSchedule: CareSchedule;
+  lastCompletedDates: LastCompletedDates;
+  deferredTasks: DeferredTaskMap;
   createdAt: string;
   notes?: string;
 }
@@ -19,6 +21,24 @@ export interface CareSchedule {
   clean: number;
 }
 
+export type TaskType = 'water' | 'fertilize' | 'prune' | 'rotate' | 'clean';
+
+export interface LastCompletedDates {
+  water?: string;
+  fertilize?: string;
+  prune?: string;
+  rotate?: string;
+  clean?: string;
+}
+
+export interface DeferredTaskMap {
+  water?: number;
+  fertilize?: number;
+  prune?: number;
+  rotate?: number;
+  clean?: number;
+}
+
 export interface Task {
   id: string;
   plantId: string;
@@ -28,9 +48,8 @@ export interface Task {
   completed: boolean;
   completedDate?: string;
   deferredCount: number;
+  nextDate: string;
 }
-
-export type TaskType = 'water' | 'fertilize' | 'prune' | 'rotate' | 'clean';
 
 export interface TaskTypeInfo {
   key: TaskType;

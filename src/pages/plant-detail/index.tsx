@@ -5,31 +5,58 @@ import dayjs from 'dayjs';
 import classnames from 'classnames';
 import { usePlantStore } from '@/store/usePlantStore';
 import { taskTypeList } from '@/data/mockDiagnose';
+import { getNextScheduleForPlant } from '@/utils/taskGenerator';
+import type { TaskType } from '@/types/plant';
 import styles from './index.module.scss';
 
 const PlantDetailPage: React.FC = () => {
   const router = useRouter();
   const plantId = router.params.id;
-  
-  const { plants, getPhotosByPlant, deletePlant, deletePhoto } = usePlantStore();
-  
+
+  const { plants, getPhotosByPlant, deletePlant, deletePhoto, initStore } = usePlantStore();
+
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  useDidShow(() => {
+    initStore();
+    setRefreshKey(k => k + 1);
+  });
+
   const plant = useMemo(() => {
     return plants.find(p => p.id === plantId);
-  }, [plants, plantId]);
+  }, [plants, plantId, refreshKey]);
 
   const plantPhotos = useMemo(() => {
     if (!plantId) return [];
     return getPhotosByPlant(plantId).slice(0, 6);
-  }, [plantId, getPhotosByPlant]);
+  }, [plantId, getPhotosByPlant, refreshKey]);
+
+  const nextSchedule = useMemo(() => {
+    if (!plant) return null;
+    return getNextScheduleForPlant(plant);
+  }, [plant, refreshKey]);
 
   const ownedDays = useMemo(() => {
     if (!plant) return 0;
     return dayjs().diff(dayjs(plant.purchaseDate), 'day');
   }, [plant]);
 
-  useDidShow(() => {
-    // 刷新数据
-  });
+  const getScheduleStatusClass = (isOverdue: boolean, date: string) => {
+    if (isOverdue) return styles.nextOverdue;
+    const diff = dayjs(date).diff(dayjs(), 'day');
+    if (diff === 0) return styles.nextToday;
+    if (diff === 1) return styles.nextTomorrow;
+    return styles.nextNormal;
+  };
+
+  const getScheduleStatusText = (isOverdue: boolean, date: string) => {
+    if (isOverdue) return '逾期';
+    const diff = dayjs(date).diff(dayjs(), 'day');
+    if (diff < 0) return `逾期${Math.abs(diff)}天`;
+    if (diff === 0) return '今日';
+    if (diff === 1) return '明日';
+    return `${diff}天后`;
+  };
 
   const handleEdit = () => {
     Taro.showToast({
@@ -60,8 +87,9 @@ const PlantDetailPage: React.FC = () => {
   };
 
   const handlePhotoClick = (photo: typeof plantPhotos[0]) => {
+    const allPhotos = getPhotosByPlant(plantId || '');
     Taro.previewImage({
-      urls: plantPhotos.map(p => p.url),
+      urls: allPhotos.map(p => p.url),
       current: photo.url
     });
   };
@@ -77,6 +105,7 @@ const PlantDetailPage: React.FC = () => {
             success: (modalRes) => {
               if (modalRes.confirm) {
                 deletePhoto(photoId);
+                setRefreshKey(k => k + 1);
                 Taro.showToast({
                   title: '已删除',
                   icon: 'success'
@@ -92,6 +121,12 @@ const PlantDetailPage: React.FC = () => {
   const handleViewAllPhotos = () => {
     Taro.switchTab({
       url: '/pages/album/index'
+    });
+  };
+
+  const handleGoToTasks = () => {
+    Taro.switchTab({
+      url: '/pages/tasks/index'
     });
   };
 
@@ -130,7 +165,45 @@ const PlantDetailPage: React.FC = () => {
       </View>
 
       <View className={styles.section}>
-        <Text className={styles.sectionTitle}>⏰ 养护周期</Text>
+        <View className={styles.sectionHeader}>
+          <Text className={styles.sectionTitle}>📅 下次养护计划</Text>
+          <Text className={styles.sectionAction} onClick={handleGoToTasks}>
+            查看全部 →
+          </Text>
+        </View>
+        {nextSchedule && (
+          <View className={styles.nextScheduleGrid}>
+            {taskTypeList.map(task => {
+              const info = nextSchedule[task.key as TaskType];
+              const lastDone = plant.lastCompletedDates[task.key as TaskType];
+              return (
+                <View key={task.key} className={styles.nextScheduleItem}>
+                  <View
+                    className={styles.nextScheduleIcon}
+                    style={{ backgroundColor: `${task.color}15` }}
+                  >
+                    <Text>{task.icon}</Text>
+                  </View>
+                  <Text className={styles.nextScheduleName}>{task.name}</Text>
+                  <Text className={classnames(styles.nextScheduleDate, getScheduleStatusClass(info.isOverdue, info.date))}>
+                    {getScheduleStatusText(info.isOverdue, info.date)}
+                  </Text>
+                  <Text className={styles.nextScheduleDateText}>{info.date}</Text>
+                  <View className={styles.nextScheduleMeta}>
+                    <Text className={styles.nextScheduleInterval}>每 {plant.careSchedule[task.key as TaskType]} 天</Text>
+                    {lastDone && (
+                      <Text className={styles.nextScheduleLast}>上次：{lastDone}</Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      <View className={styles.section}>
+        <Text className={styles.sectionTitle}>⏰ 养护周期设置</Text>
         <View className={styles.scheduleList}>
           {taskTypeList.map(task => (
             <View key={task.key} className={styles.scheduleItem}>
@@ -139,7 +212,7 @@ const PlantDetailPage: React.FC = () => {
                 <Text>{task.name}</Text>
               </View>
               <Text className={styles.scheduleValue}>
-                每 {plant.careSchedule[task.key]} 天
+                每 {plant.careSchedule[task.key as TaskType]} 天
               </Text>
             </View>
           ))}

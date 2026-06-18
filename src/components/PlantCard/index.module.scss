@@ -84,3 +84,21 @@
   font-size: $font-size-xs;
   color: $color-warning;
 }
+
+.nextOverdue {
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}
+
+.nextToday {
+  color: $color-warning;
+  font-weight: $font-weight-medium;
+}
+
+.nextTomorrow {
+  color: $color-info;
+}
+
+.nextNormal {
+  color: $color-primary;
+}

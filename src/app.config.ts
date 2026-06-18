@@ -8,7 +8,9 @@ export default defineAppConfig({
     'pages/plant-add/index',
     'pages/plant-detail/index',
     'pages/diagnose-detail/index',
-    'pages/knowledge-detail/index'
+    'pages/knowledge-detail/index',
+    'pages/photo-compare/index',
+    'pages/diagnose-record/index'
   ],
   window: {
     backgroundTextStyle: 'light',

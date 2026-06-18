@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
 import type { Plant } from '@/types/plant';
+import { getNextScheduleForPlant, getTaskTypeIcon } from '@/utils/taskGenerator';
 import styles from './index.module.scss';
 
 interface PlantCardProps {
@@ -23,6 +24,34 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant, onClick }) => {
   };
 
   const ownedDays = dayjs().diff(dayjs(plant.purchaseDate), 'day');
+
+  const nextTask = useMemo(() => {
+    const schedule = getNextScheduleForPlant(plant);
+    const all = (Object.keys(schedule) as Array<keyof typeof schedule>).map(type => ({
+      type,
+      ...schedule[type]
+    }));
+    all.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+    return all[0];
+  }, [plant]);
+
+  const nextStatusText = useMemo(() => {
+    if (!nextTask) return '';
+    const diff = dayjs(nextTask.date).diff(dayjs(), 'day');
+    if (nextTask.isOverdue || diff < 0) return `逾期${Math.abs(diff)}天`;
+    if (diff === 0) return '今日';
+    if (diff === 1) return '明日';
+    return `${diff}天后`;
+  }, [nextTask]);
+
+  const nextStatusClass = useMemo(() => {
+    if (!nextTask) return '';
+    const diff = dayjs(nextTask.date).diff(dayjs(), 'day');
+    if (nextTask.isOverdue || diff < 0) return styles.nextOverdue;
+    if (diff === 0) return styles.nextToday;
+    if (diff === 1) return styles.nextTomorrow;
+    return styles.nextNormal;
+  }, [nextTask]);
 
   return (
     <View className={styles.card} onClick={handleClick}>
@@ -46,7 +75,11 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant, onClick }) => {
         </View>
         <View className={styles.footer}>
           <Text className={styles.date}>已陪伴 {ownedDays} 天</Text>
-          <Text className={styles.nextTask}>💧 {plant.careSchedule.water}天浇一次</Text>
+          {nextTask && (
+            <Text className={classnames(styles.nextTask, nextStatusClass)}>
+              {getTaskTypeIcon(nextTask.type as any)} {nextStatusText}
+            </Text>
+          )}
         </View>
       </View>
     </View>
