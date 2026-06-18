@@ -1,0 +1,174 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $page-padding;
+  padding-bottom: calc(#{env(safe-area-inset-bottom)} + 120rpx);
+  min-height: 100vh;
+}
+
+.header {
+  padding: $spacing-lg 0;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: $spacing-xs;
+}
+
+.selectPlant {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-lg 0;
+  box-shadow: $shadow-card;
+}
+
+.selectTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.plantList {
+  display: flex;
+  gap: $spacing-sm;
+  @include scroll-x-container;
+}
+
+.plantItem {
+  @include scroll-x-item(180rpx);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background-color: $color-bg-hover;
+  transition: all $transition-base;
+}
+
+.plantItemActive {
+  background: $color-primary-gradient;
+  
+  .plantName, .plantLocation {
+    color: $color-text-white;
+  }
+}
+
+.plantAvatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-round;
+  margin-bottom: $spacing-sm;
+  background-color: $color-bg-tag;
+}
+
+.plantName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+  max-width: 100%;
+}
+
+.plantLocation {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+  max-width: 100%;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin: $spacing-lg 0 $spacing-md;
+}
+
+.tipCard {
+  background: linear-gradient(135deg, rgba(250, 140, 22, 0.1) 0%, rgba(245, 34, 45, 0.1) 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.tipTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-warning;
+  margin-bottom: $spacing-sm;
+}
+
+.tipText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.recordSection {
+  margin-top: $spacing-xl;
+}
+
+.recordCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  box-shadow: $shadow-card;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recordInfo {
+  flex: 1;
+}
+
+.recordPlant {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.recordSymptom {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: 4rpx;
+}
+
+.recordDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.emptyState {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xl * 2;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 100rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+  line-height: $line-height-loose;
+}

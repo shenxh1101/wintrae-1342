@@ -1,0 +1,91 @@
+@use '@/styles/compat.scss';
+@use '@/styles/variables.scss' as *;
+
+// 全局样式
+page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB',
+    sans-serif;
+  font-size: $font-size-md;
+  line-height: $line-height-normal;
+  color: $color-text-primary;
+  background: linear-gradient(180deg, #F0FFF0 0%, $color-bg-page 100%);
+  min-height: 100vh;
+}
+
+// 通用卡片样式
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: 0 2rpx 12rpx rgba(45, 184, 77, 0.08);
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+// 通用按钮样式
+.btnPrimary {
+  @include button-reset;
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+  
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.btnSecondary {
+  @include button-reset;
+  background-color: $color-bg-tag;
+  color: $color-text-green;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+  
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+// 标签样式
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  background-color: $color-bg-tag;
+  color: $color-text-green;
+}
+
+.tagWarning {
+  background-color: #FFF7E6;
+  color: $color-warning;
+}
+
+.tagError {
+  background-color: #FFF1F0;
+  color: $color-error;
+}
+
+// 空状态样式
+.emptyState {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xl * 2;
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}
+
+.emptyIcon {
+  font-size: 80rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.5;
+}

@@ -1,0 +1,65 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+  transition: all $transition-base;
+  
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.image {
+  width: 100%;
+  height: 320rpx;
+  background-color: $color-bg-hover;
+}
+
+.content {
+  padding: $spacing-md;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.date {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.plantName {
+  font-size: $font-size-sm;
+  color: $color-text-green;
+  background-color: $color-bg-tag;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-sm;
+}
+
+.notes {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-normal;
+  @include text-ellipsis-multi(2);
+}
+
+.deleteBtn {
+  @include button-reset;
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background-color: rgba(245, 34, 45, 0.9);
+  color: $color-text-white;
+  font-size: 28rpx;
+  z-index: 10;
+}

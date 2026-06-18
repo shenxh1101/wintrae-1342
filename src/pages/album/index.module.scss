@@ -1,0 +1,150 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $page-padding;
+  padding-bottom: calc(#{env(safe-area-inset-bottom)} + 120rpx);
+  min-height: 100vh;
+}
+
+.header {
+  padding: $spacing-lg 0;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: $spacing-xs;
+}
+
+.filterBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin: $spacing-md 0 $spacing-lg;
+  @include scroll-x-container;
+}
+
+.filterItem {
+  @include scroll-x-item(auto);
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-button;
+  background-color: $color-bg-card;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  white-space: nowrap;
+  transition: all $transition-base;
+  box-shadow: $shadow-card;
+}
+
+.filterItemActive {
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
+.filterAll {
+  font-weight: $font-weight-medium;
+}
+
+.addBtn {
+  @include button-reset;
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  height: $button-height-md;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  margin-bottom: $spacing-lg;
+  
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.timeline {
+  position: relative;
+  padding-left: 40rpx;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 12rpx;
+  top: 0;
+  bottom: 0;
+  width: 4rpx;
+  background: linear-gradient(180deg, $color-primary 0%, rgba(45, 184, 77, 0.2) 100%);
+}
+
+.timeGroup {
+  margin-bottom: $spacing-xl;
+}
+
+.timeHeader {
+  position: relative;
+  margin-bottom: $spacing-md;
+}
+
+.timeHeader::before {
+  content: '';
+  position: absolute;
+  left: -48rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  border: 4rpx solid $color-bg-page;
+  box-shadow: 0 0 0 4rpx $color-primary;
+}
+
+.timeTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.emptyState {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xl * 3;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-lg;
+  line-height: $line-height-loose;
+}
+
+.emptyBtn {
+  @include button-reset;
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  height: $button-height-md;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+}
