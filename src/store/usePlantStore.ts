@@ -31,7 +31,7 @@ interface PlantStore {
   updatePlant: (id: string, updates: Partial<Plant>) => void;
   deletePlant: (id: string) => void;
 
-  getTasks: () => Task[];
+  getTasks: (rangeDays?: number) => Task[];
   getCompletedTasks: () => CompletedTaskRecord[];
   completeTask: (task: Task, options?: { photoUrl?: string; notes?: string }) => void;
   deferTask: (taskId: string, taskType: TaskType, plantId: string, days?: number) => void;
@@ -124,9 +124,9 @@ const baseStore = create<PlantStore>()(
         console.log('[PlantStore] 删除植物:', id);
       },
 
-      getTasks: () => {
+      getTasks: (rangeDays) => {
         const { plants } = get();
-        return generateAllTasks(plants);
+        return generateAllTasks(plants, rangeDays);
       },
 
       getCompletedTasks: () => {

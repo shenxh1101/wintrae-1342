@@ -65,6 +65,48 @@ const PlantDetailPage: React.FC = () => {
     setEditingSchedule({ ...plant.careSchedule });
   };
 
+  const handleEdit = () => {
+    Taro.showActionSheet({
+      itemList: ['✏️ 编辑养护周期', '📝 编辑备注', 'ℹ️ 更多功能开发中'],
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          handleStartEditSchedule();
+          Taro.pageScrollTo({
+            selector: '.scheduleSection',
+            duration: 300
+          }).catch(() => {
+            Taro.showToast({
+              title: '已进入养护周期编辑',
+              icon: 'none'
+            });
+          });
+        } else if (res.tapIndex === 1) {
+          Taro.showModal({
+            title: '编辑备注',
+            editable: true,
+            placeholderText: '记录这株植物的特点...',
+            content: plant?.notes || '',
+            success: (modalRes) => {
+              if (modalRes.confirm && plantId) {
+                updatePlant(plantId, { notes: modalRes.content || '' });
+                setRefreshKey(k => k + 1);
+                Taro.showToast({
+                  title: '已保存',
+                  icon: 'success'
+                });
+              }
+            }
+          });
+        } else if (res.tapIndex === 2) {
+          Taro.showToast({
+            title: '更多功能开发中',
+            icon: 'none'
+          });
+        }
+      }
+    });
+  };
+
   const handleScheduleChange = (type: TaskType, delta: number) => {
     if (!editingSchedule) return;
     const newValue = Math.max(1, Math.min(180, editingSchedule[type] + delta));
@@ -228,7 +270,7 @@ const PlantDetailPage: React.FC = () => {
         )}
       </View>
 
-      <View className={styles.section}>
+      <View className={classnames(styles.section, 'scheduleSection')}>
         <View className={styles.sectionHeader}>
           <Text className={styles.sectionTitle}>⏰ 养护周期设置</Text>
           {!editingSchedule ? (

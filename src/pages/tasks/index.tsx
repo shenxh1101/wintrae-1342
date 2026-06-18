@@ -1,31 +1,36 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
 import dayjs from 'dayjs';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
 import classnames from 'classnames';
 import { usePlantStore } from '@/store/usePlantStore';
 import TaskItem from '@/components/TaskItem';
-import { getCalendarTasks } from '@/utils/taskGenerator';
-import type { Task, TaskType } from '@/types/plant';
+import { groupTasksByDate, generateCalendarDays } from '@/utils/taskGenerator';
+import type { Task } from '@/types/plant';
+import type { CalendarDayInfo } from '@/utils/taskGenerator';
 import styles from './index.module.scss';
 
+dayjs.extend(weekOfYear);
+
 type TabType = 'pending' | 'completed';
-type ViewMode = 'list' | 'calendar';
+type CalendarViewMode = 'week' | 'month';
 
 const TasksPage: React.FC = () => {
   const { plants, getTasks, getCompletedTasks, completeTask, deferTask, initStore } = usePlantStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('pending');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [today, setToday] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [calendarMode, setCalendarMode] = useState<CalendarViewMode>('month');
+  const [todayStr, setTodayStr] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [currentMonth, setCurrentMonth] = useState(dayjs());
+  const [calendarDate, setCalendarDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
 
   useEffect(() => {
     initStore();
-    setToday(dayjs().format('YYYY年MM月DD日 dddd'));
+    setTodayStr(dayjs().format('YYYY年MM月DD日 dddd'));
   }, []);
 
   useDidShow(() => {
@@ -39,17 +44,26 @@ const TasksPage: React.FC = () => {
     }, 500);
   });
 
-  const tasks = useMemo(() => getTasks(), [getTasks, refreshKey]);
-  const completedHistory = useMemo(() => getCompletedTasks(), [getCompletedTasks, refreshKey]);
+  const allTasks = useMemo(() => {
+    return getTasks(120);
+  }, [getTasks, refreshKey]);
+
+  const completedHistory = useMemo(() => {
+    return getCompletedTasks();
+  }, [getCompletedTasks, refreshKey]);
+
+  const tasksByDate = useMemo(() => {
+    return groupTasksByDate(allTasks);
+  }, [allTasks]);
 
   const { overdueTasks, todayTasks, tomorrowTasks } = useMemo(() => {
-    const now = dayjs();
+    const now = dayjs().startOf('day');
     const overdue: Task[] = [];
     const todayArr: Task[] = [];
     const tomorrow: Task[] = [];
 
-    tasks.forEach(task => {
-      const scheduled = dayjs(task.scheduledDate);
+    allTasks.forEach(task => {
+      const scheduled = dayjs(task.scheduledDate).startOf('day');
       const diff = scheduled.diff(now, 'day');
       if (diff < 0) {
         overdue.push(task);
@@ -65,132 +79,121 @@ const TasksPage: React.FC = () => {
       todayTasks: todayArr,
       tomorrowTasks: tomorrow
     };
-  }, [tasks]);
+  }, [allTasks]);
 
-  const calendarData = useMemo(() => {
-    const year = currentMonth.year();
-    const month = currentMonth.month() + 1;
-    return getCalendarTasks(plants, year, month);
-  }, [plants, currentMonth, refreshKey]);
-
-  const calendarDays = useMemo(() => {
-    const year = currentMonth.year();
-    const month = currentMonth.month();
-    const firstDay = dayjs(new Date(year, month, 1));
-    const startWeekDay = firstDay.day();
-    const daysInMonth = firstDay.daysInMonth();
-    const days: { date: string; day: number; isCurrentMonth: boolean; isToday: boolean; isSelected: boolean; hasOverdue: boolean; taskCount: number }[] = [];
-
-    const prevMonthDays = firstDay.subtract(startWeekDay, 'day');
-    for (let i = 0; i < startWeekDay; i++) {
-      const d = prevMonthDays.add(i, 'day');
-      const dateStr = d.format('YYYY-MM-DD');
-      const dayTasks = calendarData[dateStr] || [];
-      days.push({
-        date: dateStr,
-        day: d.date(),
-        isCurrentMonth: false,
-        isToday: d.isSame(dayjs(), 'day'),
-        isSelected: dateStr === selectedDate,
-        hasOverdue: dayTasks.some(t => t.isOverdue),
-        taskCount: dayTasks.length
+  const calendarDays = useMemo((): CalendarDayInfo[] => {
+    try {
+      return generateCalendarDays({
+        currentDate: calendarDate,
+        selectedDate,
+        tasksByDate,
+        viewMode: calendarMode
       });
+    } catch (err) {
+      console.error('[TasksPage] 生成日历失败:', err);
+      return [];
     }
-
-    for (let i = 1; i <= daysInMonth; i++) {
-      const d = dayjs(new Date(year, month, i));
-      const dateStr = d.format('YYYY-MM-DD');
-      const dayTasks = calendarData[dateStr] || [];
-      days.push({
-        date: dateStr,
-        day: i,
-        isCurrentMonth: true,
-        isToday: d.isSame(dayjs(), 'day'),
-        isSelected: dateStr === selectedDate,
-        hasOverdue: dayTasks.some(t => t.isOverdue),
-        taskCount: dayTasks.length
-      });
-    }
-
-    const remaining = 42 - days.length;
-    const nextMonthStart = firstDay.add(daysInMonth, 'day');
-    for (let i = 0; i < remaining; i++) {
-      const d = nextMonthStart.add(i, 'day');
-      const dateStr = d.format('YYYY-MM-DD');
-      const dayTasks = calendarData[dateStr] || [];
-      days.push({
-        date: dateStr,
-        day: d.date(),
-        isCurrentMonth: false,
-        isToday: d.isSame(dayjs(), 'day'),
-        isSelected: dateStr === selectedDate,
-        hasOverdue: dayTasks.some(t => t.isOverdue),
-        taskCount: dayTasks.length
-      });
-    }
-
-    return days;
-  }, [currentMonth, calendarData, selectedDate]);
+  }, [calendarDate, selectedDate, tasksByDate, calendarMode]);
 
   const selectedDayTasks = useMemo(() => {
-    const tasksForDay = calendarData[selectedDate] || [];
-    return tasksForDay.map(t => ({
-      id: `${t.plantId}-${t.type}-${t.date}`,
-      plantId: t.plantId,
-      plantName: t.plantName,
-      type: t.type as TaskType,
-      scheduledDate: t.date,
-      completed: false,
-      deferredCount: 0,
-      nextDate: ''
-    } as Task));
-  }, [calendarData, selectedDate]);
+    return tasksByDate[selectedDate] || [];
+  }, [tasksByDate, selectedDate]);
 
-  const handlePrevMonth = () => {
-    setCurrentMonth(currentMonth.subtract(1, 'month'));
-  };
+  const handlePrev = useCallback(() => {
+    if (calendarMode === 'week') {
+      setCalendarDate(prev => prev.subtract(1, 'week'));
+    } else {
+      setCalendarDate(prev => prev.subtract(1, 'month'));
+    }
+  }, [calendarMode]);
 
-  const handleNextMonth = () => {
-    setCurrentMonth(currentMonth.add(1, 'month'));
-  };
+  const handleNext = useCallback(() => {
+    if (calendarMode === 'week') {
+      setCalendarDate(prev => prev.add(1, 'week'));
+    } else {
+      setCalendarDate(prev => prev.add(1, 'month'));
+    }
+  }, [calendarMode]);
 
-  const handleDateClick = (date: string) => {
+  const handleToday = useCallback(() => {
+    setCalendarDate(dayjs());
+    setSelectedDate(dayjs().format('YYYY-MM-DD'));
+  }, []);
+
+  const handleDateClick = useCallback((date: string) => {
     setSelectedDate(date);
-  };
+  }, []);
 
-  const handleComplete = (task: Task, options?: { photoUrl?: string; notes?: string }) => {
-    completeTask(task, options);
-    Taro.showToast({
-      title: '完成打卡成功',
-      icon: 'success'
-    });
-    setRefreshKey(k => k + 1);
-  };
+  const handleComplete = useCallback((task: Task, options?: { photoUrl?: string; notes?: string }) => {
+    try {
+      completeTask(task, options);
+      Taro.showToast({
+        title: '完成打卡成功',
+        icon: 'success'
+      });
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      console.error('[TasksPage] 完成任务失败:', err);
+      Taro.showToast({
+        title: '操作失败，请重试',
+        icon: 'none'
+      });
+    }
+  }, [completeTask]);
 
-  const handleDefer = (task: Task, days: number = 1) => {
-    deferTask(task.id, task.type, task.plantId, days);
-    Taro.showToast({
-      title: `已延期${days}天`,
-      icon: 'none'
-    });
-    setRefreshKey(k => k + 1);
-  };
+  const handleDefer = useCallback((task: Task, days: number = 1) => {
+    try {
+      deferTask(task.id, task.type, task.plantId, days);
+      Taro.showToast({
+        title: `已延期${days}天`,
+        icon: 'none'
+      });
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      console.error('[TasksPage] 延期任务失败:', err);
+      Taro.showToast({
+        title: '操作失败，请重试',
+        icon: 'none'
+      });
+    }
+  }, [deferTask]);
 
   const pendingTasks = [...overdueTasks, ...todayTasks, ...tomorrowTasks];
   const displayPending = activeTab === 'pending';
   const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
-  const renderTaskItem = (task: Task) => (
+  const renderTaskItem = useCallback((task: Task) => (
     <TaskItem
       key={task.id}
       task={task}
       onComplete={(options) => handleComplete(task, options)}
       onDefer={(days) => handleDefer(task, days)}
     />
-  );
+  ), [handleComplete, handleDefer]);
+
+  const renderCompletedItem = useCallback((record: any) => (
+    <TaskItem
+      key={record.id}
+      task={{
+        id: record.id,
+        plantId: record.plantId,
+        plantName: record.plantName,
+        type: record.type,
+        scheduledDate: record.scheduledDate,
+        completed: true,
+        completedDate: record.completedDate,
+        deferredCount: record.deferredCount,
+        nextDate: ''
+      }}
+      isHistory
+      completedDate={record.completedDate}
+      completedPhotoUrl={record.photoUrl}
+      completedNotes={record.notes}
+    />
+  ), []);
 
   return (
-    <ScrollView className={styles.page} scrollY>
+    <ScrollView className={styles.page} scrollY enhanced showScrollbar={false}>
       <View className={styles.header}>
         <View className={styles.headerTop}>
           <Text className={styles.title}>📋 今日任务</Text>
@@ -209,7 +212,7 @@ const TasksPage: React.FC = () => {
             </Text>
           </View>
         </View>
-        <Text className={styles.date}>{today}</Text>
+        <Text className={styles.date}>{todayStr}</Text>
       </View>
 
       {viewMode === 'list' ? (
@@ -286,26 +289,7 @@ const TasksPage: React.FC = () => {
               </View>
             ) : (
               <View className={styles.list}>
-                {completedHistory.map(record => (
-                  <TaskItem
-                    key={record.id}
-                    task={{
-                      id: record.id,
-                      plantId: record.plantId,
-                      plantName: record.plantName,
-                      type: record.type,
-                      scheduledDate: record.scheduledDate,
-                      completed: true,
-                      completedDate: record.completedDate,
-                      deferredCount: record.deferredCount,
-                      nextDate: ''
-                    }}
-                    isHistory
-                    completedDate={record.completedDate}
-                    completedPhotoUrl={record.photoUrl}
-                    completedNotes={record.notes}
-                  />
-                ))}
+                {completedHistory.map(renderCompletedItem)}
               </View>
             )
           )}
@@ -314,14 +298,34 @@ const TasksPage: React.FC = () => {
         <>
           <View className={styles.calendarCard}>
             <View className={styles.calendarHeader}>
-              <Text className={styles.monthNav} onClick={handlePrevMonth}>
+              <Text className={styles.monthNav} onClick={handlePrev}>
                 ◀
               </Text>
-              <Text className={styles.monthTitle}>
-                {currentMonth.format('YYYY年MM月')}
-              </Text>
-              <Text className={styles.monthNav} onClick={handleNextMonth}>
+              <View className={styles.monthInfo}>
+                <Text className={styles.monthTitle}>
+                  {calendarDate.format(calendarMode === 'week' ? 'YYYY年MM月第W周' : 'YYYY年MM月')}
+                </Text>
+                <Text className={styles.todayBtn} onClick={handleToday}>
+                  今天
+                </Text>
+              </View>
+              <Text className={styles.monthNav} onClick={handleNext}>
                 ▶
+              </Text>
+            </View>
+
+            <View className={styles.calendarModeToggle}>
+              <Text
+                className={classnames(styles.calModeBtn, calendarMode === 'week' && styles.calModeActive)}
+                onClick={() => setCalendarMode('week')}
+              >
+                周视图
+              </Text>
+              <Text
+                className={classnames(styles.calModeBtn, calendarMode === 'month' && styles.calModeActive)}
+                onClick={() => setCalendarMode('month')}
+              >
+                月视图
               </Text>
             </View>
 
@@ -331,16 +335,21 @@ const TasksPage: React.FC = () => {
               ))}
             </View>
 
-            <View className={styles.daysGrid}>
+            <View className={classnames(
+              styles.daysGrid,
+              calendarMode === 'week' && styles.daysGridWeek
+            )}>
               {calendarDays.map(day => (
                 <View
                   key={day.date}
                   className={classnames(
                     styles.dayCell,
+                    calendarMode === 'week' && styles.dayCellWeek,
                     !day.isCurrentMonth && styles.dayOtherMonth,
                     day.isToday && styles.dayToday,
                     day.isSelected && styles.daySelected,
-                    day.hasOverdue && styles.dayHasOverdue
+                    day.hasOverdue && styles.dayHasOverdue,
+                    day.isCurrentWeek && calendarMode === 'month' && styles.dayCurrentWeek
                   )}
                   onClick={() => handleDateClick(day.date)}
                 >
@@ -382,14 +391,7 @@ const TasksPage: React.FC = () => {
               </View>
             ) : (
               <View className={styles.list}>
-                {selectedDayTasks.map(task => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    onComplete={(options) => handleComplete(task, options)}
-                    onDefer={(days) => handleDefer(task, days)}
-                  />
-                ))}
+                {selectedDayTasks.map(renderTaskItem)}
               </View>
             )}
           </View>
@@ -400,4 +402,3 @@ const TasksPage: React.FC = () => {
 };
 
 export default TasksPage;
-

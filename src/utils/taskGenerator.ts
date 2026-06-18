@@ -62,19 +62,19 @@ export const getNextScheduleForPlant = (plant: Plant): Record<TaskType, { date: 
   return result;
 };
 
-export const generateTasksForPlant = (plant: Plant): Task[] => {
+export const generateTasksForPlant = (plant: Plant, rangeDays: number = 90): Task[] => {
   const tasks: Task[] = [];
-  const today = dayjs();
+  const today = dayjs().startOf('day');
 
   taskTypes.forEach(type => {
     const interval = plant.careSchedule[type];
     if (interval <= 0) return;
 
     const { date, isOverdue, deferredCount } = calculateNextDate(plant, type);
-    const scheduled = dayjs(date);
+    const scheduled = dayjs(date).startOf('day');
     const diffDays = scheduled.diff(today, 'day');
 
-    if (diffDays <= 1) {
+    if (diffDays <= rangeDays) {
       const nextCycleDate = scheduled.add(interval, 'day').format('YYYY-MM-DD');
       tasks.push({
         id: `${plant.id}-${type}-${date}`,
@@ -92,11 +92,11 @@ export const generateTasksForPlant = (plant: Plant): Task[] => {
   return tasks;
 };
 
-export const generateAllTasks = (plants: Plant[]): Task[] => {
+export const generateAllTasks = (plants: Plant[], rangeDays: number = 90): Task[] => {
   let allTasks: Task[] = [];
 
   plants.forEach(plant => {
-    const plantTasks = generateTasksForPlant(plant);
+    const plantTasks = generateTasksForPlant(plant, rangeDays);
     allTasks = [...allTasks, ...plantTasks];
   });
 
@@ -109,49 +109,131 @@ export const generateAllTasks = (plants: Plant[]): Task[] => {
   return allTasks;
 };
 
-export interface CalendarTaskItem {
-  plantId: string;
-  plantName: string;
-  type: TaskType;
+export const groupTasksByDate = (tasks: Task[]): Record<string, Task[]> => {
+  const result: Record<string, Task[]> = {};
+  tasks.forEach(task => {
+    const key = task.scheduledDate;
+    if (!result[key]) result[key] = [];
+    result[key].push(task);
+  });
+  return result;
+};
+
+export interface CalendarDayInfo {
   date: string;
-  isOverdue: boolean;
+  day: number;
+  isCurrentMonth: boolean;
+  isCurrentWeek: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+  hasOverdue: boolean;
+  taskCount: number;
+  tasks: Task[];
 }
 
-export const getCalendarTasks = (plants: Plant[], year: number, month: number): Record<string, CalendarTaskItem[]> => {
-  const result: Record<string, CalendarTaskItem[]> = {};
-  const monthStart = dayjs(`${year}-${String(month).padStart(2, '0')}-01`);
-  const monthEnd = monthStart.endOf('month');
+interface CalendarOptions {
+  currentDate: dayjs.Dayjs;
+  selectedDate: string;
+  tasksByDate: Record<string, Task[]>;
+  viewMode: 'month' | 'week';
+}
 
-  plants.forEach(plant => {
-    taskTypes.forEach(type => {
-      const { date, isOverdue } = calculateNextDate(plant, type);
-      const taskDate = dayjs(date);
+export const generateCalendarDays = ({
+  currentDate,
+  selectedDate,
+  tasksByDate,
+  viewMode
+}: CalendarOptions): CalendarDayInfo[] => {
+  const days: CalendarDayInfo[] = [];
+  const today = dayjs().startOf('day');
+  const currentWeekStart = today.startOf('week');
+  const currentWeekEnd = today.endOf('week');
 
-      if (taskDate.isBefore(monthStart, 'day') && isOverdue) {
-        const key = monthStart.format('YYYY-MM-DD');
-        if (!result[key]) result[key] = [];
-        result[key].push({
-          plantId: plant.id,
-          plantName: plant.name,
-          type,
-          date,
-          isOverdue: true
-        });
-      } else if (taskDate.isSame(monthStart, 'month') || taskDate.isBetween(monthStart, monthEnd, 'day', '[]')) {
-        const key = taskDate.format('YYYY-MM-DD');
-        if (!result[key]) result[key] = [];
-        result[key].push({
-          plantId: plant.id,
-          plantName: plant.name,
-          type,
-          date,
-          isOverdue
-        });
-      }
-    });
-  });
+  if (viewMode === 'week') {
+    const weekStart = currentDate.startOf('week');
+    for (let i = 0; i < 7; i++) {
+      const d = weekStart.add(i, 'day');
+      const dateStr = d.format('YYYY-MM-DD');
+      const dayTasks = tasksByDate[dateStr] || [];
 
-  return result;
+      days.push({
+        date: dateStr,
+        day: d.date(),
+        isCurrentMonth: d.isSame(currentDate, 'month'),
+        isCurrentWeek: d.isBetween(currentWeekStart, currentWeekEnd, 'day', '[]'),
+        isToday: d.isSame(today, 'day'),
+        isSelected: dateStr === selectedDate,
+        hasOverdue: dayTasks.some(t => dayjs(t.scheduledDate).isBefore(today, 'day')),
+        taskCount: dayTasks.length,
+        tasks: dayTasks
+      });
+    }
+  } else {
+    const year = currentDate.year();
+    const month = currentDate.month();
+    const firstDay = dayjs(new Date(year, month, 1));
+    const startWeekDay = firstDay.day();
+    const daysInMonth = firstDay.daysInMonth();
+
+    const prevMonthDays = firstDay.subtract(startWeekDay, 'day');
+    for (let i = 0; i < startWeekDay; i++) {
+      const d = prevMonthDays.add(i, 'day');
+      const dateStr = d.format('YYYY-MM-DD');
+      const dayTasks = tasksByDate[dateStr] || [];
+
+      days.push({
+        date: dateStr,
+        day: d.date(),
+        isCurrentMonth: false,
+        isCurrentWeek: d.isBetween(currentWeekStart, currentWeekEnd, 'day', '[]'),
+        isToday: d.isSame(today, 'day'),
+        isSelected: dateStr === selectedDate,
+        hasOverdue: dayTasks.some(t => dayjs(t.scheduledDate).isBefore(today, 'day')),
+        taskCount: dayTasks.length,
+        tasks: dayTasks
+      });
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = dayjs(new Date(year, month, i));
+      const dateStr = d.format('YYYY-MM-DD');
+      const dayTasks = tasksByDate[dateStr] || [];
+
+      days.push({
+        date: dateStr,
+        day: i,
+        isCurrentMonth: true,
+        isCurrentWeek: d.isBetween(currentWeekStart, currentWeekEnd, 'day', '[]'),
+        isToday: d.isSame(today, 'day'),
+        isSelected: dateStr === selectedDate,
+        hasOverdue: dayTasks.some(t => dayjs(t.scheduledDate).isBefore(today, 'day')),
+        taskCount: dayTasks.length,
+        tasks: dayTasks
+      });
+    }
+
+    const remaining = 42 - days.length;
+    const nextMonthStart = firstDay.add(daysInMonth, 'day');
+    for (let i = 0; i < remaining; i++) {
+      const d = nextMonthStart.add(i, 'day');
+      const dateStr = d.format('YYYY-MM-DD');
+      const dayTasks = tasksByDate[dateStr] || [];
+
+      days.push({
+        date: dateStr,
+        day: d.date(),
+        isCurrentMonth: false,
+        isCurrentWeek: d.isBetween(currentWeekStart, currentWeekEnd, 'day', '[]'),
+        isToday: d.isSame(today, 'day'),
+        isSelected: dateStr === selectedDate,
+        hasOverdue: dayTasks.some(t => dayjs(t.scheduledDate).isBefore(today, 'day')),
+        taskCount: dayTasks.length,
+        tasks: dayTasks
+      });
+    }
+  }
+
+  return days;
 };
 
 export const getTaskTypeName = (type: TaskType): string => {
