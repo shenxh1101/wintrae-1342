@@ -74,7 +74,7 @@ export const generateTasksForPlant = (plant: Plant): Task[] => {
     const scheduled = dayjs(date);
     const diffDays = scheduled.diff(today, 'day');
 
-    if (diffDays <= 1 && diffDays >= -7) {
+    if (diffDays <= 1) {
       const nextCycleDate = scheduled.add(interval, 'day').format('YYYY-MM-DD');
       tasks.push({
         id: `${plant.id}-${type}-${date}`,

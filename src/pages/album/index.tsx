@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import classnames from 'classnames';
 import { usePlantStore } from '@/store/usePlantStore';
 import PhotoItem from '@/components/PhotoItem';
+import { saveImageToLocal, deleteLocalImage } from '@/utils/imageStorage';
 import styles from './index.module.scss';
 
 const AlbumPage: React.FC = () => {
@@ -58,7 +59,7 @@ const AlbumPage: React.FC = () => {
     return plant?.name || '未知植物';
   };
 
-  const handleAddPhoto = () => {
+  const handleAddPhoto = async () => {
     if (plants.length === 0) {
       Taro.showToast({
         title: '请先添加植物',
@@ -67,42 +68,52 @@ const AlbumPage: React.FC = () => {
       return;
     }
 
-    Taro.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFilePaths[0];
-        const plantId = selectedPlantId === 'all' ? plants[0].id : selectedPlantId;
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera']
+      });
+      const tempFilePath = res.tempFilePaths[0];
 
-        Taro.showModal({
-          title: '添加备注',
-          editable: true,
-          placeholderText: '记录这一刻的变化...',
-          success: (modalRes) => {
-            if (modalRes.confirm) {
-              addPhoto({
-                plantId,
-                url: tempFilePath,
-                date: dayjs().format('YYYY-MM-DD'),
-                notes: modalRes.content || ''
-              });
-              setRefreshKey(k => k + 1);
-              Taro.showToast({
-                title: '照片已添加',
-                icon: 'success'
-              });
-            }
-          }
+      Taro.showLoading({ title: '保存中...' });
+
+      const savedPath = await saveImageToLocal(tempFilePath);
+      const plantId = selectedPlantId === 'all' ? plants[0].id : selectedPlantId;
+
+      const modalRes = await Taro.showModal({
+        title: '添加备注',
+        editable: true,
+        placeholderText: '记录这一刻的变化...'
+      });
+
+      if (modalRes.confirm) {
+        addPhoto({
+          plantId,
+          url: savedPath,
+          date: dayjs().format('YYYY-MM-DD'),
+          notes: modalRes.content || ''
         });
-      },
-      fail: (err) => {
-        console.error('[Album] 选择图片失败:', err);
+        setRefreshKey(k => k + 1);
+        Taro.showToast({
+          title: '照片已添加',
+          icon: 'success'
+        });
+      } else {
+        await deleteLocalImage(savedPath);
       }
-    });
+    } catch (err) {
+      console.error('[Album] 选择图片失败:', err);
+    } finally {
+      Taro.hideLoading();
+    }
   };
 
-  const handleDeletePhoto = (photoId: string) => {
+  const handleDeletePhoto = async (photoId: string) => {
+    const photo = photos.find(p => p.id === photoId);
+    if (photo && photo.url) {
+      await deleteLocalImage(photo.url);
+    }
     deletePhoto(photoId);
     setRefreshKey(k => k + 1);
     Taro.showToast({

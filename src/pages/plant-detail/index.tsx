@@ -6,7 +6,8 @@ import classnames from 'classnames';
 import { usePlantStore } from '@/store/usePlantStore';
 import { taskTypeList } from '@/data/mockDiagnose';
 import { getNextScheduleForPlant } from '@/utils/taskGenerator';
-import type { TaskType } from '@/types/plant';
+import { deleteLocalImage } from '@/utils/imageStorage';
+import type { TaskType, Photo } from '@/types/plant';
 import styles from './index.module.scss';
 
 const PlantDetailPage: React.FC = () => {
@@ -97,22 +98,24 @@ const PlantDetailPage: React.FC = () => {
   const handlePhotoLongPress = (photoId: string) => {
     Taro.showActionSheet({
       itemList: ['删除照片'],
-      success: (res) => {
+      success: async (res) => {
         if (res.tapIndex === 0) {
-          Taro.showModal({
+          const modalRes = await Taro.showModal({
             title: '删除照片',
-            content: '确定要删除这张照片吗？',
-            success: (modalRes) => {
-              if (modalRes.confirm) {
-                deletePhoto(photoId);
-                setRefreshKey(k => k + 1);
-                Taro.showToast({
-                  title: '已删除',
-                  icon: 'success'
-                });
-              }
-            }
+            content: '确定要删除这张照片吗？'
           });
+          if (modalRes.confirm) {
+            const photo = getPhotosByPlant(plantId || '').find(p => p.id === photoId);
+            if (photo) {
+              await deleteLocalImage(photo.url);
+            }
+            deletePhoto(photoId);
+            setRefreshKey(k => k + 1);
+            Taro.showToast({
+              title: '已删除',
+              icon: 'success'
+            });
+          }
         }
       }
     });

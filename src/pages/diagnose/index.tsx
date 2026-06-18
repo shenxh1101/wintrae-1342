@@ -74,21 +74,16 @@ const DiagnosePage: React.FC = () => {
   };
 
   const handleSymptomClick = (symptom: Symptom) => {
-    if (selectedPlantId) {
-      addDiagnosticRecord({
-        plantId: selectedPlantId,
-        symptomId: symptom.id,
-        date: dayjs().format('YYYY-MM-DD')
-      });
-      setRefreshKey(k => k + 1);
+    if (!selectedPlantId) {
       Taro.showToast({
-        title: '已记录诊断',
-        icon: 'success'
+        title: '请先选择植物',
+        icon: 'none'
       });
+      return;
     }
 
     Taro.navigateTo({
-      url: `/pages/diagnose-detail/index?id=${symptom.id}&plantId=${selectedPlantId || ''}`
+      url: `/pages/diagnose-detail/index?id=${symptom.id}&plantId=${selectedPlantId}`
     });
   };
 

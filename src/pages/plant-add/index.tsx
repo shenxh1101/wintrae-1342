@@ -6,6 +6,7 @@ import classnames from 'classnames';
 import { usePlantStore } from '@/store/usePlantStore';
 import { taskTypeList } from '@/data/mockDiagnose';
 import type { CareSchedule } from '@/types/plant';
+import { saveImageToLocal } from '@/utils/imageStorage';
 import styles from './index.module.scss';
 
 const lightOptions = ['散射光', '充足阳光', '半阴', '耐阴', '明亮光线'];
@@ -31,18 +32,23 @@ const PlantAddPage: React.FC = () => {
     clean: 14
   });
 
-  const handleChooseImage = () => {
-    Taro.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        setImage(res.tempFilePaths[0]);
-      },
-      fail: (err) => {
-        console.error('[PlantAdd] 选择图片失败:', err);
-      }
-    });
+  const handleChooseImage = async () => {
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera']
+      });
+      const tempPath = res.tempFilePaths[0];
+
+      Taro.showLoading({ title: '处理中...' });
+      const savedPath = await saveImageToLocal(tempPath);
+      setImage(savedPath);
+    } catch (err) {
+      console.error('[PlantAdd] 选择图片失败:', err);
+    } finally {
+      Taro.hideLoading();
+    }
   };
 
   const updateSchedule = (type: keyof CareSchedule, delta: number) => {
