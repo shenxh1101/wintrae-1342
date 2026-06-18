@@ -109,6 +109,51 @@ export const generateAllTasks = (plants: Plant[]): Task[] => {
   return allTasks;
 };
 
+export interface CalendarTaskItem {
+  plantId: string;
+  plantName: string;
+  type: TaskType;
+  date: string;
+  isOverdue: boolean;
+}
+
+export const getCalendarTasks = (plants: Plant[], year: number, month: number): Record<string, CalendarTaskItem[]> => {
+  const result: Record<string, CalendarTaskItem[]> = {};
+  const monthStart = dayjs(`${year}-${String(month).padStart(2, '0')}-01`);
+  const monthEnd = monthStart.endOf('month');
+
+  plants.forEach(plant => {
+    taskTypes.forEach(type => {
+      const { date, isOverdue } = calculateNextDate(plant, type);
+      const taskDate = dayjs(date);
+
+      if (taskDate.isBefore(monthStart, 'day') && isOverdue) {
+        const key = monthStart.format('YYYY-MM-DD');
+        if (!result[key]) result[key] = [];
+        result[key].push({
+          plantId: plant.id,
+          plantName: plant.name,
+          type,
+          date,
+          isOverdue: true
+        });
+      } else if (taskDate.isSame(monthStart, 'month') || taskDate.isBetween(monthStart, monthEnd, 'day', '[]')) {
+        const key = taskDate.format('YYYY-MM-DD');
+        if (!result[key]) result[key] = [];
+        result[key].push({
+          plantId: plant.id,
+          plantName: plant.name,
+          type,
+          date,
+          isOverdue
+        });
+      }
+    });
+  });
+
+  return result;
+};
+
 export const getTaskTypeName = (type: TaskType): string => {
   return taskTypeNames[type];
 };

@@ -14,6 +14,8 @@ interface CompletedTaskRecord {
   scheduledDate: string;
   completedDate: string;
   deferredCount: number;
+  photoUrl?: string;
+  notes?: string;
 }
 
 interface PlantStore {
@@ -31,7 +33,7 @@ interface PlantStore {
 
   getTasks: () => Task[];
   getCompletedTasks: () => CompletedTaskRecord[];
-  completeTask: (task: Task) => void;
+  completeTask: (task: Task, options?: { photoUrl?: string; notes?: string }) => void;
   deferTask: (taskId: string, taskType: TaskType, plantId: string, days?: number) => void;
 
   addPhoto: (photo: Omit<Photo, 'id'>) => void;
@@ -134,35 +136,57 @@ const baseStore = create<PlantStore>()(
           );
       },
 
-      completeTask: (task) => {
+      completeTask: (task, options = {}) => {
         const now = dayjs().format('YYYY-MM-DD');
+        const { photoUrl, notes } = options;
         const completedRecord: CompletedTaskRecord = {
-          id: task.id,
+          id: task.id + '-' + Date.now(),
           plantId: task.plantId,
           plantName: task.plantName,
           type: task.type,
           scheduledDate: task.scheduledDate,
           completedDate: now,
-          deferredCount: task.deferredCount
+          deferredCount: task.deferredCount,
+          photoUrl,
+          notes
         };
 
-        set((state) => ({
-          completedHistory: [...state.completedHistory, completedRecord],
-          plants: state.plants.map((p) => {
-            if (p.id !== task.plantId) return p;
-            const newLastCompletedDates = {
-              ...p.lastCompletedDates,
-              [task.type]: now
-            };
-            const newDeferredTasks = { ...p.deferredTasks };
-            delete newDeferredTasks[task.type];
-            return {
-              ...p,
-              lastCompletedDates: newLastCompletedDates,
-              deferredTasks: newDeferredTasks
-            };
-          })
-        }));
+        const taskTypeName: Record<TaskType, string> = {
+          water: '浇水',
+          fertilize: '施肥',
+          prune: '修剪',
+          rotate: '转盆',
+          clean: '清洁'
+        };
+
+        set((state) => {
+          const newPhotos = photoUrl ? [...state.photos, {
+            id: generateId(),
+            plantId: task.plantId,
+            url: photoUrl,
+            date: now,
+            notes: notes ? `【${taskTypeName[task.type]}】${notes}` : `【${taskTypeName[task.type]}】养护记录`
+          }] : state.photos;
+
+          return {
+            completedHistory: [...state.completedHistory, completedRecord],
+            photos: newPhotos,
+            plants: state.plants.map((p) => {
+              if (p.id !== task.plantId) return p;
+              const newLastCompletedDates = {
+                ...p.lastCompletedDates,
+                [task.type]: now
+              };
+              const newDeferredTasks = { ...p.deferredTasks };
+              delete newDeferredTasks[task.type];
+              return {
+                ...p,
+                lastCompletedDates: newLastCompletedDates,
+                deferredTasks: newDeferredTasks
+              };
+            })
+          };
+        });
         console.log('[PlantStore] 完成任务:', task.plantName, task.type);
       },
 
@@ -170,12 +194,28 @@ const baseStore = create<PlantStore>()(
         set((state) => ({
           plants: state.plants.map((p) => {
             if (p.id !== plantId) return p;
-            const currentDefer = p.deferredTasks[taskType] || 0;
+
+            const { date: currentNext } = calculateNextDate(p, taskType);
+            const isOverdue = dayjs(currentNext).isBefore(dayjs(), 'day');
+            const interval = p.careSchedule[taskType];
+
+            let newLastCompleted = p.lastCompletedDates[taskType];
+            let newDeferred = (p.deferredTasks[taskType] || 0) + days;
+
+            if (isOverdue) {
+              newLastCompleted = dayjs().subtract(interval, 'day').format('YYYY-MM-DD');
+              newDeferred = days;
+            }
+
             return {
               ...p,
+              lastCompletedDates: {
+                ...p.lastCompletedDates,
+                [taskType]: newLastCompleted
+              },
               deferredTasks: {
                 ...p.deferredTasks,
-                [taskType]: currentDefer + days
+                [taskType]: newDeferred
               }
             };
           })

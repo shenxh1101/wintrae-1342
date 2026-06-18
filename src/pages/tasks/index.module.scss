@@ -114,3 +114,213 @@
   color: $color-text-tertiary;
   line-height: $line-height-loose;
 }
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.viewToggle {
+  display: flex;
+  background-color: $color-bg-card;
+  border-radius: 100rpx;
+  padding: 6rpx;
+  box-shadow: $shadow-card;
+}
+
+.toggleBtn {
+  padding: $spacing-xs $spacing-md;
+  border-radius: 100rpx;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.toggleActive {
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
+.calendarCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.monthNav {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  border-radius: 50%;
+  background-color: $color-bg-hover;
+
+  &:active {
+    background-color: $color-divider;
+  }
+}
+
+.monthTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.weekRow {
+  display: flex;
+  margin-bottom: $spacing-xs;
+}
+
+.weekDay {
+  flex: 1;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  padding: $spacing-xs 0;
+}
+
+.daysGrid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.dayCell {
+  width: calc(100% / 7);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  position: relative;
+  border-radius: $radius-sm;
+  transition: all $transition-fast;
+
+  &:active {
+    background-color: $color-bg-hover;
+  }
+}
+
+.dayOtherMonth {
+  opacity: 0.3;
+}
+
+.dayToday {
+  .dayNumber {
+    color: $color-primary;
+    font-weight: $font-weight-bold;
+  }
+}
+
+.daySelected {
+  background: $color-primary-gradient;
+
+  .dayNumber {
+    color: $color-text-white;
+    font-weight: $font-weight-semibold;
+  }
+
+  .taskDot {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.dayNumber {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: 1;
+}
+
+.taskDot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+}
+
+.dotOverdue {
+  background-color: $color-error;
+}
+
+.dotNormal {
+  background-color: $color-primary;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-lg;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.dotSmall {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+}
+
+.dotTodaySmall {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  border: 2rpx solid $color-primary;
+  background-color: transparent;
+}
+
+.legendText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.dayTasksSection {
+  margin-bottom: $spacing-lg;
+}
+
+.dayTasksTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.dayEmpty {
+  @include flex-center;
+  padding: $spacing-xl * 2;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+}
+
+.dayEmptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

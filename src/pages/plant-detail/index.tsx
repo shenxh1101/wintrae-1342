@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Button, Image, ScrollView } from '@tarojs/components';
 import Taro, { useRouter, useDidShow } from '@tarojs/taro';
 import dayjs from 'dayjs';
@@ -7,16 +7,17 @@ import { usePlantStore } from '@/store/usePlantStore';
 import { taskTypeList } from '@/data/mockDiagnose';
 import { getNextScheduleForPlant } from '@/utils/taskGenerator';
 import { deleteLocalImage } from '@/utils/imageStorage';
-import type { TaskType, Photo } from '@/types/plant';
+import type { TaskType, Photo, CareSchedule } from '@/types/plant';
 import styles from './index.module.scss';
 
 const PlantDetailPage: React.FC = () => {
   const router = useRouter();
   const plantId = router.params.id;
 
-  const { plants, getPhotosByPlant, deletePlant, deletePhoto, initStore } = usePlantStore();
+  const { plants, getPhotosByPlant, deletePlant, deletePhoto, updatePlant, initStore } = usePlantStore();
 
   const [refreshKey, setRefreshKey] = React.useState(0);
+  const [editingSchedule, setEditingSchedule] = useState<CareSchedule | null>(null);
 
   useDidShow(() => {
     initStore();
@@ -59,11 +60,33 @@ const PlantDetailPage: React.FC = () => {
     return `${diff}天后`;
   };
 
-  const handleEdit = () => {
-    Taro.showToast({
-      title: '编辑功能开发中',
-      icon: 'none'
+  const handleStartEditSchedule = () => {
+    if (!plant) return;
+    setEditingSchedule({ ...plant.careSchedule });
+  };
+
+  const handleScheduleChange = (type: TaskType, delta: number) => {
+    if (!editingSchedule) return;
+    const newValue = Math.max(1, Math.min(180, editingSchedule[type] + delta));
+    setEditingSchedule({
+      ...editingSchedule,
+      [type]: newValue
     });
+  };
+
+  const handleSaveSchedule = () => {
+    if (!plantId || !editingSchedule) return;
+    updatePlant(plantId, { careSchedule: editingSchedule });
+    setEditingSchedule(null);
+    setRefreshKey(k => k + 1);
+    Taro.showToast({
+      title: '已保存',
+      icon: 'success'
+    });
+  };
+
+  const handleCancelEditSchedule = () => {
+    setEditingSchedule(null);
   };
 
   const handleDelete = () => {
@@ -206,19 +229,61 @@ const PlantDetailPage: React.FC = () => {
       </View>
 
       <View className={styles.section}>
-        <Text className={styles.sectionTitle}>⏰ 养护周期设置</Text>
-        <View className={styles.scheduleList}>
-          {taskTypeList.map(task => (
-            <View key={task.key} className={styles.scheduleItem}>
-              <View className={styles.scheduleLabel}>
-                <Text className={styles.scheduleIcon}>{task.icon}</Text>
-                <Text>{task.name}</Text>
-              </View>
-              <Text className={styles.scheduleValue}>
-                每 {plant.careSchedule[task.key as TaskType]} 天
+        <View className={styles.sectionHeader}>
+          <Text className={styles.sectionTitle}>⏰ 养护周期设置</Text>
+          {!editingSchedule ? (
+            <Text className={styles.sectionAction} onClick={handleStartEditSchedule}>
+              编辑
+            </Text>
+          ) : (
+            <View className={styles.editActions}>
+              <Text className={styles.cancelBtn} onClick={handleCancelEditSchedule}>
+                取消
+              </Text>
+              <Text className={styles.saveBtn} onClick={handleSaveSchedule}>
+                保存
               </Text>
             </View>
-          ))}
+          )}
+        </View>
+        <View className={styles.scheduleList}>
+          {taskTypeList.map(task => {
+            const typeKey = task.key as TaskType;
+            const value = editingSchedule
+              ? editingSchedule[typeKey]
+              : plant.careSchedule[typeKey];
+            return (
+              <View key={task.key} className={styles.scheduleItem}>
+                <View className={styles.scheduleLabel}>
+                  <Text className={styles.scheduleIcon}>{task.icon}</Text>
+                  <Text>{task.name}</Text>
+                </View>
+                {editingSchedule ? (
+                  <View className={styles.scheduleEditor}>
+                    <View
+                      className={styles.stepBtn}
+                      onClick={() => handleScheduleChange(typeKey, -1)}
+                    >
+                      <Text className={styles.stepBtnText}>−</Text>
+                    </View>
+                    <Text className={styles.scheduleValue}>
+                      每 {value} 天
+                    </Text>
+                    <View
+                      className={styles.stepBtn}
+                      onClick={() => handleScheduleChange(typeKey, 1)}
+                    >
+                      <Text className={styles.stepBtnText}>+</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text className={styles.scheduleValue}>
+                    每 {value} 天
+                  </Text>
+                )}
+              </View>
+            );
+          })}
         </View>
       </View>
 
